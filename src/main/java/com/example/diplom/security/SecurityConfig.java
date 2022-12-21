@@ -14,7 +14,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -30,21 +29,18 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     private final UserRepository userRepository;
     private final JwtTokenFilter jwtTokenFilter;
     private final SecurityError securityError;
+    private final PasswordEncoder encoder;
 
-    public SecurityConfig(UserRepository userRepository, JwtTokenFilter jwtTokenFilter, SecurityError securityError) {
+    public SecurityConfig(UserRepository userRepository, JwtTokenFilter jwtTokenFilter, SecurityError securityError, PasswordEncoder encoder) {
         this.userRepository = userRepository;
         this.jwtTokenFilter = jwtTokenFilter;
         this.securityError = securityError;
+        this.encoder = encoder;
     }
 
     @Bean
     public AuthenticationManager authenticationManagerBean() throws Exception {
         return super.authenticationManagerBean();
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
     @Bean
@@ -65,8 +61,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             var user = userRepository.findByEmail(email);
             if (user == null) throw new UserNotFoundException("Пользователь " + email + " не найден!");
             List<GrantedAuthority> list = List.of(new SimpleGrantedAuthority("ROLE_USER"));
-            return new User(user.getEmail(), passwordEncoder().encode(user.getPassword()), list);
-        }).passwordEncoder(passwordEncoder());
+            return new User(user.getEmail(), user.getPassword(), list);
+        }).passwordEncoder(encoder);
     }
 
     @Override
